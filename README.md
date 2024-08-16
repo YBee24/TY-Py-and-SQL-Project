@@ -18,7 +18,7 @@ Clone the repository to your local machine:
 
 bash
 Copy code
-git clone https://github.com/yourusername/music-library-management.git
+git clone (https://github.com/YBee24/TY-Py-and-SQL-Project)
 2. Install Python Dependencies
 Navigate to the project directory and install the required Python packages:
 
