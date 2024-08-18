@@ -1,61 +1,73 @@
-import pandas as pd  # Import the pandas library, which is used for handling data in tabular form
-import mysql.connector  # Import MySQL connector to interact with the MySQL database
+# Import necessary libraries
+import pandas as pd  # Pandas is a powerful data manipulation library in Python
+import mysql.connector  # mysql.connector is a library for connecting to and interacting with a MySQL database
 
-# Load the Excel file
-file_path = r'D:\TYPython&SQLProject.xlsx'  # Define the path to the Excel file that contains your data
-excel_data = pd.ExcelFile(file_path)  # Load the entire Excel file into a variable
+# Define the file path to the Excel file
+# This is the path where your Excel file is located on your computer
+file_path = r'D:\TYPython&SQLProject.xlsx'
 
-# Read the information from 'Sheet1' (since it contains all the data)
-full_df = excel_data.parse('Sheet1')  # Parse (read) the data from the first sheet named 'Sheet1' into a DataFrame
+# Load the Excel file using Pandas
+# pd.ExcelFile() loads the entire Excel workbook, allowing you to access individual sheets
+excel_data = pd.ExcelFile(file_path)
 
-# Adjust the DataFrame creation to use the correct columns
-songs_df = full_df[['ID', 'Track_Name']]  # Create a new DataFrame with only the 'ID' and 'Track_Name' columns
+# Parse the data from 'Sheet1'
+# The parse() method reads the data from the specified sheet in the Excel file into a DataFrame
+full_df = excel_data.parse('Sheet1')
+
+# Create a DataFrame with the specific columns you want to work with
+# The columns 'ID', 'Genre', 'Artist', 'Track_Name', 'Mood', 'Year _of _Release', and 'YouTube_Link' are selected
+# from the Excel sheet to create a new DataFrame called 'songs_df'
+songs_df = full_df[['ID', 'Genre', 'Artist', 'Track_Name', 'Mood', 'Year _of _Release', 'YouTube_Link']]
 
 # Check for missing values in the DataFrame
+# isna() checks for missing values (NaN) in each column, and sum() adds up the number of missing values per column
 print("Missing values before handling:")
-print(songs_df.isna().sum())  # Print the number of missing values (NaNs) in each column of the DataFrame
+print(songs_df.isna().sum())  # This prints the count of missing values in each column before handling
 
-# Handle missing values by dropping rows that contain them
-songs_df = songs_df.dropna()  # Remove any rows from the DataFrame that have missing values
+# Handle missing values by dropping rows with any missing data
+# dropna() removes any rows that contain NaN (missing) values
+songs_df = songs_df.dropna()
 
-# After handling missing values, print the number of missing values again to confirm they are gone
+# Check for missing values again after handling them
+# This ensures that there are no missing values left in the DataFrame
 print("Missing values after handling:")
-print(songs_df.isna().sum())  # Should show 0 missing values in each column
+print(songs_df.isna().sum())  # This prints the count of missing values in each column after handling
 
 # Connect to your MySQL database
+# mysql.connector.connect() establishes a connection to the MySQL database using the provided credentials
 db_connection = mysql.connector.connect(
-    host="localhost",  # The server hosting the MySQL database (localhost means your own computer)
-    user="root",  # The username to connect to the MySQL database (default is usually 'root')
-    password="root",  # The password for the MySQL database user (set to 'root' here, but it could be different)
-    database="MusicLibrary"  # The name of the database you want to connect to
+    host="localhost",  # The address of the database server (localhost means your own computer)
+    user="root",  # The username to connect to the database (default is 'root')
+    password="root",  # The password for the database user (set to 'root' here, but this can vary)
+    database="MusicLibrary"  # The name of the database you want to connect to (replace with your database name)
 )
 
-cursor = db_connection.cursor()  # Create a cursor object, which is used to execute SQL commands
+# Create a cursor object to interact with the database
+# A cursor is an interface for executing SQL commands and fetching data from the database
+cursor = db_connection.cursor()
 
-# Step 4: Create a table for storing songs in your digital library if it doesn't already exist
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS Songs (
-    SongID INT PRIMARY KEY,  # Define the SongID column as an integer and the primary key (unique identifier)
-    SongName VARCHAR(100)  # Define the SongName column as a string with a maximum of 100 characters
-)
-""")
-
-db_connection.commit()  # Save the changes made to the database (in this case, the creation of the table)
-
-# Step 5: Fill the digital library with your songs from the DataFrame
-for _, row in songs_df.iterrows():  # Iterate over each row in the DataFrame
+# Loop through each row in the DataFrame 'songs_df'
+# iterrows() generates an iterator that yields index, row pairs
+for _, row in songs_df.iterrows():
+    # Execute an SQL REPLACE command to insert the song data into the 'Songs' table
+    # REPLACE works like an INSERT, but if a record with the same primary key exists, it deletes it first
+    # and then inserts the new record (effectively an update operation)
     cursor.execute("""
-    INSERT INTO Songs (SongID, SongName)
-    VALUES (%s, %s)
-    """, (row['ID'], row['Track_Name']))  # Insert the SongID and SongName into the Songs table
+    REPLACE INTO Songs (SongID, Genre, Artist, Track_Name, Mood, Year_of_Release, YouTube_Link)
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """, (row['ID'], row['Genre'], row['Artist'], row['Track_Name'], row['Mood'], row['Year _of _Release'], row['YouTube_Link']))
 
-db_connection.commit()  # Save the changes made to the database (in this case, the insertion of data)
+# Commit the transaction to save all the changes to the database
+# This makes sure that all the insertions are finalized in the database
+db_connection.commit()
 
-# Step 6: Check that everything worked by retrieving and printing all records from the Songs table
-cursor.execute("SELECT * FROM Songs")  # Execute an SQL command to select all records from the Songs table
-for row in cursor.fetchall():  # Fetch all the rows from the result of the query
-    print(row)  # Print each row to verify that the data was inserted correctly
+# Verify that the data was inserted correctly by selecting and printing all records from the 'Songs' table
+cursor.execute("SELECT * FROM Songs")
+for row in cursor.fetchall():
+    print(row)  # Print each row of the result to the console
 
-# Step 7: Close the connection to your digital library
-cursor.close()  # Close the cursor to free up resources
-db_connection.close()  # Close the database connection to free up resources
+# Close the cursor to free up resources
+cursor.close()
+
+# Close the database connection to free up resources
+db_connection.close()

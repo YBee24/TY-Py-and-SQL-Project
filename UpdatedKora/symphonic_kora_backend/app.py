@@ -1,126 +1,117 @@
-from flask import Flask, request, jsonify  # Import necessary modules from Flask
-import mysql.connector  # Import MySQL connector to interact with the MySQL database
+# Import necessary libraries
+# Flask is a web framework for building web applications in Python
+# request is used to handle incoming HTTP requests and extract data from them
+# jsonify is used to convert Python data structures into JSON format
+from flask import Flask, request, jsonify
 
-app = Flask(__name__)  # Create a new Flask web application
+# mysql.connector is a library for connecting to and interacting with a MySQL database
+import mysql.connector
 
-# Function to establish a connection to the MySQL database
+# googleapiclient.discovery is a module for accessing Google APIs, in this case, the YouTube Data API
+from googleapiclient.discovery import build
+
+# Create an instance of the Flask class for your web application.
+# This instance will be used to route HTTP requests and define how the application should respond to them.
+app = Flask(__name__)
+
+
+# Define a function to establish a connection to the MySQL database
+# This function will return a connection object that allows us to interact with the database
 def get_db_connection():
-    # This function returns a connection object to the MySQL database
     return mysql.connector.connect(
-        host="localhost",  # The server hosting the MySQL database (localhost means your own computer)
-        user="root",  # The username to connect to the MySQL database (default is usually 'root')
-        password="root",  # The password for the MySQL database user (set to 'root' here, but it could be different)
-        database="MusicLibrary"  # The name of the database you want to connect to
+        host="localhost",  # The address of the database server (localhost means your own computer)
+        user="root",  # The username to connect to the database (default is 'root')
+        password="root",  # The password for the database user (set to 'root' here, but this can vary)
+        database="MusicLibrary"  # The name of the database you want to connect to (replace with your database name)
     )
 
 
-# Route to create a new playlist (C in CRUD: Create)
-@app.route('/playlists', methods=['POST'])
-def add_playlist():
-    data = request.json  # Get the data sent in the request body as JSON format
+# Define a function to search YouTube for a song
+# This function will use the YouTube Data API to search for videos matching the given song name
+def search_youtube(song_name):
+    api_key = 'AIzaSyC33vQ1bcNeRoCYsL1Rocr3AvMjyNHPFNU'  # Replace with your actual API key
+    # 'build' is used to create a service object for the YouTube API
+    youtube = build('youtube', 'v3', developerKey=api_key)
 
-    db = get_db_connection()  # Establish a connection to the database using the function defined above
-    cursor = db.cursor()  # Create a cursor object, which is used to execute SQL commands
+    # Create a request to search YouTube using the API
+    # part='snippet' specifies that we want basic details about the video (title, description, etc.)
+    # q=song_name is the query string (i.e., the name of the song we're searching for)
+    # maxResults=1 limits the search results to the first video found
+    request = youtube.search().list(
+        part='snippet',
+        q=song_name,
+        maxResults=1
+    )
 
-    # Insert a new record into the Playlists table in the database
-    cursor.execute("""
-        INSERT INTO Playlists (PlaylistID, PlaylistName, Description)
-        VALUES (%s, %s, %s)
-    """, (data['PlaylistID'], data['PlaylistName'], data.get('Description', '')))
-    # The above command inserts values into PlaylistID, PlaylistName, and Description columns
-    # It uses placeholders (%s) to insert the values provided in the data dictionary.
-    # The get('Description', '') method retrieves the Description or uses an empty string if none is provided.
+    # Execute the request to YouTube and get the response
+    response = request.execute()
 
-    db.commit()  # Save the changes made to the database
-    cursor.close()  # Close the cursor to free up resources
-    db.close()  # Close the database connection to free up resources
-
-    # Return a success message in JSON format with a status code of 201 (Created)
-    return jsonify({'message': 'Playlist added successfully'}), 201
-
-
-# Route to read (retrieve) all playlists (R in CRUD: Read)
-@app.route('/playlists', methods=['GET'])
-def get_playlists():
-    db = get_db_connection()  # Establish a connection to the database
-    cursor = db.cursor(dictionary=True)  # Create a cursor that returns rows as dictionaries
-
-    # Select all records from the Playlists table
-    cursor.execute("SELECT * FROM Playlists")  # This SQL command fetches all data from the Playlists table
-    playlists = cursor.fetchall()  # Fetch all the rows returned by the query and store them in the playlists variable
-
-    cursor.close()  # Close the cursor to free up resources
-    db.close()  # Close the database connection to free up resources
-
-    # Return the list of playlists as a JSON response
-    return jsonify(playlists)
-
-
-# Route to read (retrieve) a specific playlist by its ID
-@app.route('/playlists/<int:playlist_id>', methods=['GET'])
-def get_playlist(playlist_id):
-    db = get_db_connection()  # Establish a connection to the database
-    cursor = db.cursor(dictionary=True)  # Create a cursor that returns rows as dictionaries
-
-    # Select a specific playlist by its ID
-    cursor.execute(
-        "SELECT PlaylistID, PlaylistName, IFNULL(Description, '') AS Description FROM Playlists WHERE PlaylistID = %s",
-        (playlist_id,))
-    # The SQL command retrieves a playlist with the specified PlaylistID
-    # IFNULL(Description, '') ensures that if the Description is NULL, an empty string is returned instead
-
-    playlist = cursor.fetchone()  # Fetch the single row returned by the query
-
-    cursor.close()  # Close the cursor to free up resources
-    db.close()  # Close the database connection to free up resources
-
-    if playlist:
-        # If the playlist is found, return it as a JSON response with a status code of 200 (OK)
-        return jsonify(playlist), 200
+    # Check if any items (videos) were found in the response
+    if response['items']:
+        # If a video was found, extract the video ID and title
+        video_id = response['items'][0]['id']['videoId']
+        video_title = response['items'][0]['snippet']['title']
+        # Construct the full URL of the video using the video ID
+        video_url = f'https://www.youtube.com/watch?v={video_id}'
+        # Return the video title and URL
+        return video_title, video_url
     else:
-        # If the playlist is not found, return an error message with a status code of 404 (Not Found)
-        return jsonify({'message': 'Playlist not found'}), 404
+        # If no videos were found, return None for both the title and URL
+        return None, None
 
 
-# Route to update (U in CRUD: Update) an existing playlist
-@app.route('/playlists/<int:playlist_id>', methods=['PUT'])
-def update_playlist(playlist_id):
-    data = request.json  # Get the data sent in the request body as JSON format
-    db = get_db_connection()  # Establish a connection to the database
-    cursor = db.cursor()  # Create a cursor object to execute SQL commands
+# Define a route for the search functionality
+# When a GET request is made to /songs/search, this function will handle it
+@app.route('/songs/search', methods=['GET'])
+def search_songs():
+    # Extract the 'Artist' and 'SongName' parameters from the request's query string
+    artist = request.args.get('Artist')
+    song_name = request.args.get('SongName')
 
-    # Update the playlist details in the Playlists table
-    cursor.execute("""
-        UPDATE Playlists SET PlaylistName = %s, Description = %s WHERE PlaylistID = %s
-    """, (data['PlaylistName'], data.get('Description', ''), playlist_id))
-    # This command updates the PlaylistName and Description of the playlist with the specified PlaylistID
+    # Establish a connection to the MySQL database
+    db = get_db_connection()
+    cursor = db.cursor(dictionary=True)  # Create a cursor object to interact with the database
 
-    db.commit()  # Save the changes made to the database
-    cursor.close()  # Close the cursor to free up resources
-    db.close()  # Close the database connection to free up resources
+    # Construct an SQL query to check if the song already exists in the database
+    # We use placeholders (%s) to avoid SQL injection attacks
+    query = "SELECT * FROM Songs WHERE Artist = %s AND SongName = %s"
+    cursor.execute(query, (artist, song_name))
+    song = cursor.fetchone()  # Fetch the first result (if any)
 
-    # Return a success message in JSON format
-    return jsonify({'message': 'Playlist updated successfully'})
+    # If the song is found in the database, return it as a JSON response with a 200 (OK) status code
+    if song:
+        return jsonify(song), 200
+    else:
+        # If the song is not found in the database, search for it on YouTube
+        full_name = f"{artist} {song_name}"  # Combine the artist's name and song title for the search query
+        video_title, video_url = search_youtube(full_name)
+
+        if video_title and video_url:
+            # If a matching video is found on YouTube, insert the song details into the database
+            cursor.execute("""
+                INSERT INTO Songs (Artist, SongName, YouTubeURL)
+                VALUES (%s, %s, %s)
+            """, (artist, song_name, video_url))
+            db.commit()  # Commit the transaction to save the changes in the database
+
+            # Fetch the newly added song from the database to return it
+            cursor.execute(query, (artist, song_name))
+            new_song = cursor.fetchone()
+
+            cursor.close()  # Close the cursor to free up resources
+            db.close()  # Close the database connection to free up resources
+
+            # Return the newly added song as a JSON response with a 200 (OK) status code
+            return jsonify(new_song), 200
+        else:
+            # If no matching video is found on YouTube, return a 404 (Not Found) status code
+            cursor.close()
+            db.close()
+            return jsonify({'message': 'No songs found matching the criteria on YouTube'}), 404
 
 
-# Route to delete (D in CRUD: Delete) a playlist by its ID
-@app.route('/playlists/<int:playlist_id>', methods=['DELETE'])
-def delete_playlist(playlist_id):
-    db = get_db_connection()  # Establish a connection to the database
-    cursor = db.cursor()  # Create a cursor object to execute SQL commands
-
-    # Delete the playlist from the Playlists table
-    cursor.execute("DELETE FROM Playlists WHERE PlaylistID = %s", (playlist_id,))
-    # This command deletes the playlist with the specified PlaylistID from the table
-
-    db.commit()  # Save the changes made to the database
-    cursor.close()  # Close the cursor to free up resources
-    db.close()  # Close the database connection to free up resources
-
-    # Return a success message in JSON format
-    return jsonify({'message': 'Playlist deleted successfully'})
-
-
-# Start the Flask development server
+# The following code will only run if this script is executed directly (not imported as a module)
 if __name__ == '__main__':
-    app.run(debug=True)  # Start the server in debug mode, which provides detailed error messages
+    # Start the Flask web server in debug mode on port 5001
+    # Debug mode allows for automatic reloading and error messages to be displayed
+    app.run(debug=True, port=5001)
