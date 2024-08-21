@@ -4,5 +4,5 @@ def get_db_connection():
         host="localhost",
         user="root",
         password="root",
-        database="MusicLibrary"
+        database="Music_Library"
     )
