@@ -1,70 +1,114 @@
-from config import *
+from config import get_db_connection
+from flask import render_template_string, url_for
 
-def get_playlist(playlist_id):
+def render_all_playlists():
+    # Establishing the database connection
     db_conn = get_db_connection()
     cursor = db_conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM Playlists WHERE PlaylistID = %s", (playlist_id,))
-    playlist = cursor.fetchone()
+
+    # Fetching all playlists from the database
+    cursor.execute("SELECT * FROM Playlists")
+    playlists = cursor.fetchall()
+
+    # Closing the cursor and connection
     cursor.close()
     db_conn.close()
 
-    if playlist:
-        html_table_rows = ''.join(
-            f"<tr><td>{key}</td><td>{value}</td></tr>" for key, value in playlist.items()
-        )
-        html_content = f"""
-        <html>
-        <head>
-            <title>Playlist Details</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; background-color: #f4f4f4; }}
-                .container {{ width: 80%; margin: auto; padding: 20px; }}
-                table {{ width: 100%; border-collapse: collapse; margin: 20px 0; background: #fff; }}
-                table th, table td {{ padding: 12px; text-align: left; border: 1px solid #ddd; }}
-                table th {{ background: #333; color: #fff; }}
-                table tr:nth-child(even) {{ background: #f2f2f2; }}
-                header {{ background-color: #333; color: white; padding: 10px 0; text-align: center; }}
-                h1 {{ margin: 0; font-size: 24px; }}
-            </style>
-        </head>
-        <body>
-            <header>
-                <h1>Playlist Details</h1>
-            </header>
-            <div class="container">
-                <table>
-                    <tr>
-                        <th>Field</th>
-                        <th>Value</th>
-                    </tr>
-                    {html_table_rows}
-                </table>
-            </div>
-        </body>
-        </html>
-        """
-        return html_content, 200
-    else:
-        html_content = """
-        <html>
-        <head>
-            <title>Playlist Not Found</title>
-            <style>
-                body { font-family: Arial, sans-serif; background-color: #f4f4f4; }
-                .container { width: 80%; margin: auto; text-align: center; padding: 20px; }
-                .message { font-size: 24px; color: #333; }
-                header { background-color: #333; color: white; padding: 10px 0; text-align: center; }
-                h1 { margin: 0; font-size: 24px; }
-            </style>
-        </head>
-        <body>
-            <header>
-                <h1>Playlist Not Found</h1>
-            </header>
-            <div class="container">
-                <p class="message">The playlist you are looking for does not exist.</p>
-            </div>
-        </body>
-        </html>
-        """
-        return html_content, 404
+    # Returning the HTML page
+    return render_template_string('''
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>All Playlists</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        background-color: #f4f4f4;
+                        padding: 20px;
+                    }
+                    .container {
+                        width: 80%;
+                        max-width: 1200px;
+                        margin: 0 auto;
+                        background-color: #fff;
+                        padding: 20px;
+                        border-radius: 10px;
+                        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                    }
+                    h1 {
+                        font-size: 36px;
+                        margin-bottom: 20px;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-bottom: 20px;
+                    }
+                    th, td {
+                        padding: 10px;
+                        text-align: left;
+                        border-bottom: 1px solid #ddd;
+                    }
+                    th {
+                        background-color: #007BFF;
+                        color: white;
+                    }
+                    tr:hover {
+                        background-color: #f1f1f1;
+                    }
+                    a {
+                        text-decoration: none;
+                        color: #007BFF;
+                    }
+                    a:hover {
+                        text-decoration: underline;
+                    }
+                    .button-group {
+                        margin-top: 20px;
+                    }
+                    .button-group a {
+                        text-decoration: none;
+                        color: #fff;
+                        background-color: #007BFF;
+                        padding: 10px 20px;
+                        border-radius: 5px;
+                        margin-right: 10px;
+                    }
+                    .button-group a:hover {
+                        background-color: #0056b3;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>All Playlists</h1>
+                    <table border="1">
+                        <tr>
+                            <th>Playlist ID</th>
+                            <th>Playlist Name</th>
+                            <th>Description</th>
+                            <th>Actions</th>
+                        </tr>
+                        {% for playlist in playlists %}
+                        <tr>
+                            <td>{{ playlist['PlaylistID'] }}</td>
+                            <td>{{ playlist['PlaylistName'] }}</td>
+                            <td>{{ playlist['Description'] }}</td>
+                            <td>
+                                <a href="{{ url_for('get_single_playlist', playlist_id=playlist['PlaylistID']) }}">View Details</a> |
+                                <a href="{{ url_for('update_existing_playlist', playlist_id=playlist['PlaylistID']) }}">Update</a> |
+                                <a href="{{ url_for('delete_existing_playlist', playlist_id=playlist['PlaylistID']) }}">Delete</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                    <div class="button-group">
+                        <a href="{{ url_for('home') }}">Home</a>
+                        <a href="{{ url_for('add_new_playlist') }}">Add New Playlist</a>
+                    </div>
+                </div>
+            </body>
+            </html>
+        ''', playlists=playlists)
