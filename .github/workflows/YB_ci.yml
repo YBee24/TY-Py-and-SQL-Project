@@ -10,7 +10,7 @@ on: [push, pull_request]
 jobs:
   build:
     # Define the operating system to run the job on
-    runs-on: vscode
+    runs-on: github
 
     # Define the steps to run
     steps:
