@@ -1,6 +1,6 @@
 from youtube_search import search_youtube_for_artist
 from config import get_db_connection
-from flask import url_for, render_template_string
+from flask import render_template_string
 
 def render_song_list(songs):
     html_rows = ''.join(

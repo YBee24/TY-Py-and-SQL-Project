@@ -23,7 +23,7 @@ db_connection = mysql.connector.connect(
     host="localhost",
     user="root",
     password="root",
-    database="Music_Library"
+    database="MusicLibrary"
 )
  
 # Create a cursor object to interact with the database

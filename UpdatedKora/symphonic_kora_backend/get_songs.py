@@ -1,34 +1,44 @@
+# Importing the get_db_connection function from the config module
+# This function is used to establish a connection to the database
 from config import get_db_connection
+
+# Importing necessary functions from the Flask module
+# url_for: Generates a URL for a given endpoint
+# render_template_string: Renders a template from a string
 from flask import url_for, render_template_string
 
+# Function to render all songs in the database
 def render_all_songs():
+    # Establishing the database connection
     db_conn = get_db_connection()
-    cursor = db_conn.cursor(dictionary=True)
+    cursor = db_conn.cursor(dictionary=True)  # Creating a cursor object to execute SQL queries, with results returned as dictionaries
 
-    # Fetching all songs from the database
+    # Fetching all songs from the Songs table
     cursor.execute("SELECT * FROM Songs")
-    songs = cursor.fetchall()
+    songs = cursor.fetchall()  # Fetching all songs
 
+    # Closing the cursor and database connection
     cursor.close()
     db_conn.close()
 
-    # Generate HTML for the song list
+    # Generating HTML for the list of songs
     html_rows = ''.join(
         f"<tr>"
-        f"<td>{song['SongID']}</td>"
-        f"<td>{song['SongName']}</td>"
-        f"<td>{song['Artist']}</td>"
-        f"<td>{song['Genre']}</td>"
-        f"<td>"
-        f"<a href='{url_for('get_song', song_id=song['SongID'])}' class='btn btn-primary'>View Details</a>"
-        f"<a href='{url_for('update_existing_song', song_id=song['SongID'])}' class='btn btn-secondary'>Update</a>"
-        f"<form action='{url_for('delete_existing_song', song_id=song['SongID'])}' method='post' style='display:inline;'><button type='submit' class='btn btn-danger'>Delete</button></form>"
+        f"<td>{song['SongID']}</td>"  # Displaying the SongID
+        f"<td>{song['SongName']}</td>"  # Displaying the SongName
+        f"<td>{song['Artist']}</td>"  # Displaying the Artist
+        f"<td>{song['Genre']}</td>"  # Displaying the Genre
+        f"<td class='action-buttons'>"  # Adding action buttons for each song
+        f"<a href='{url_for('get_song', song_id=song['SongID'])}' class='btn btn-primary'>View Details</a>"  # Link to view song details
+        f"<a href='{url_for('update_existing_song', song_id=song['SongID'])}' class='btn btn-secondary'>Update</a>"  # Link to update the song
+        f"<form action='{url_for('delete_existing_song', song_id=song['SongID'])}' method='post' style='display:inline;'>"
+        f"<button type='submit' class='btn btn-danger'>Delete</button></form>"  # Button to delete the song
         f"</td>"
         f"</tr>"
         for song in songs
     )
 
-    # Return HTML with all songs
+    # Returning HTML that displays all songs
     return render_template_string(f"""
         <!DOCTYPE html>
         <html lang="en">
@@ -37,6 +47,7 @@ def render_all_songs():
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>All Songs</title>
             <style>
+                /* Basic styling for the page */
                 body {{
                     font-family: Arial, sans-serif;
                     background-color: #f4f4f4;

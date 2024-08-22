@@ -1,34 +1,54 @@
+# Importing the get_db_connection function from the config module
+# This function is used to establish a connection to the database
 from config import get_db_connection
+
+# Importing necessary functions from the Flask module
+# render_template_string: Renders a template from a string
+# redirect: Redirects the user to a different URL
+# url_for: Generates a URL for a given endpoint
 from flask import render_template_string, redirect, url_for
 
+# Function to handle the updating of an existing song in the database
 def handle_update_song(song_id, form_data):
-    song_name = form_data.get('song_name')
-    artist = form_data.get('artist')
-    genre = form_data.get('genre')
-    mood = form_data.get('mood')
-    year_of_release = form_data.get('year_of_release')
-    youtube_url = form_data.get('youtube_url')
+    # Extracting the updated song details from the form data
+    song_name = form_data.get('song_name')          # Get the updated song name
+    artist = form_data.get('artist')                # Get the updated artist name
+    genre = form_data.get('genre')                  # Get the updated genre
+    mood = form_data.get('mood')                    # Get the updated mood
+    year_of_release = form_data.get('year_of_release')  # Get the updated year of release
+    youtube_url = form_data.get('youtube_url')      # Get the updated YouTube URL
 
-    # Database connection and update operation
+    # Establishing a connection to the database
     db_conn = get_db_connection()
-    cursor = db_conn.cursor()
+    cursor = db_conn.cursor()  # Creating a cursor object to execute SQL queries
+
+    # Executing an SQL query to update the song in the Songs table
     cursor.execute(
         "UPDATE Songs SET SongName = %s, Artist = %s, Genre = %s, Mood = %s, Year_of_Release = %s, YouTubeURL = %s WHERE SongID = %s",
         (song_name, artist, genre, mood, year_of_release, youtube_url, song_id)
     )
+
+    # Committing the transaction to save changes to the database
     db_conn.commit()
+
+    # Closing the cursor and database connection
     cursor.close()
     db_conn.close()
 
-    # Redirect to the "All Songs" page after updating the song
+    # Redirecting the user to the "All Songs" page after the song is updated
     return redirect(url_for('get_all_songs'))
 
+# Function to render a form for updating an existing song
 def render_update_song_form(song_id):
-    # Fetching the existing song details from the database
+    # Establishing a connection to the database
     db_conn = get_db_connection()
-    cursor = db_conn.cursor(dictionary=True)
+    cursor = db_conn.cursor(dictionary=True)  # Creating a cursor object to execute SQL queries, with results returned as dictionaries
+
+    # Executing an SQL query to fetch the details of the song to be updated
     cursor.execute("SELECT * FROM Songs WHERE SongID = %s", (song_id,))
-    song = cursor.fetchone()
+    song = cursor.fetchone()  # Fetching the first (and only) result from the query
+
+    # Closing the cursor and database connection
     cursor.close()
     db_conn.close()
 
@@ -38,6 +58,7 @@ def render_update_song_form(song_id):
         <head>
             <title>Update Song</title>
             <style>
+                /* Basic styling for the form */
                 body {
                     font-family: Arial, sans-serif;
                     background-color: #f4f4f4;
@@ -84,6 +105,7 @@ def render_update_song_form(song_id):
         <body>
             <div class="container">
                 <h1>Update Song</h1>
+                <!-- The form is pre-filled with the current song details -->
                 <form method="post">
                     Song Name: <input type="text" name="song_name" value="{{ song['SongName'] }}" required><br>
                     Artist: <input type="text" name="artist" value="{{ song['Artist'] }}" required><br>
@@ -93,8 +115,9 @@ def render_update_song_form(song_id):
                     YouTube URL: <input type="text" name="youtube_url" value="{{ song['YouTubeURL'] }}" required><br>
                     <input type="submit" value="Update Song">
                 </form>
+                <!-- Link to navigate back to the "All Songs" page -->
                 <a href="{{ url_for('get_all_songs') }}">Back to All Songs</a>
             </div>
         </body>
         </html>
-    ''', song=song)
+    ''', song=song)  # Passing the song details to the template

@@ -1,20 +1,27 @@
+# Importing the get_db_connection function from the config module
+# This function is used to establish a connection to the database
 from config import get_db_connection
+
+# Importing necessary functions from the Flask module
+# render_template_string: Renders a template from a string
+# url_for: Generates a URL for a given endpoint
 from flask import render_template_string, url_for
 
+# Function to render all playlists from the database
 def render_all_playlists():
     # Establishing the database connection
     db_conn = get_db_connection()
-    cursor = db_conn.cursor(dictionary=True)
+    cursor = db_conn.cursor(dictionary=True)  # Creating a cursor object to execute SQL queries, with results returned as dictionaries
 
-    # Fetching all playlists from the database
+    # Executing an SQL query to fetch all playlists from the Playlists table
     cursor.execute("SELECT * FROM Playlists")
-    playlists = cursor.fetchall()
+    playlists = cursor.fetchall()  # Fetching all results from the query
 
-    # Closing the cursor and connection
+    # Closing the cursor and database connection
     cursor.close()
     db_conn.close()
 
-    # Returning the HTML page
+    # Returning an HTML page that lists all playlists
     return render_template_string('''
             <!DOCTYPE html>
             <html lang="en">
@@ -23,6 +30,7 @@ def render_all_playlists():
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>All Playlists</title>
                 <style>
+                    /* Basic styling for the page */
                     body {
                         font-family: Arial, sans-serif;
                         background-color: #f4f4f4;
@@ -91,12 +99,14 @@ def render_all_playlists():
                             <th>Description</th>
                             <th>Actions</th>
                         </tr>
+                        <!-- Loop through each playlist in the playlists list -->
                         {% for playlist in playlists %}
                         <tr>
                             <td>{{ playlist['PlaylistID'] }}</td>
                             <td>{{ playlist['PlaylistName'] }}</td>
                             <td>{{ playlist['Description'] }}</td>
                             <td>
+                                <!-- Links to view, update, or delete each playlist -->
                                 <a href="{{ url_for('get_single_playlist', playlist_id=playlist['PlaylistID']) }}">View Details</a> |
                                 <a href="{{ url_for('update_existing_playlist', playlist_id=playlist['PlaylistID']) }}">Update</a> |
                                 <a href="{{ url_for('delete_existing_playlist', playlist_id=playlist['PlaylistID']) }}">Delete</a>
@@ -105,10 +115,11 @@ def render_all_playlists():
                         {% endfor %}
                     </table>
                     <div class="button-group">
+                        <!-- Links to return to the home page or add a new playlist -->
                         <a href="{{ url_for('home') }}">Home</a>
                         <a href="{{ url_for('add_new_playlist') }}">Add New Playlist</a>
                     </div>
                 </div>
             </body>
             </html>
-        ''', playlists=playlists)
+        ''', playlists=playlists)  # Passing the playlists data to the template

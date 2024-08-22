@@ -1,25 +1,42 @@
+# Importing the get_db_connection function from the config module
+# This function is used to establish a connection to the database
 from config import get_db_connection
+
+# Importing necessary functions from the Flask module
+# redirect: Redirects the user to a different URL
+# url_for: Generates a URL for a given endpoint
+# render_template_string: Renders a template from a string
 from flask import redirect, url_for, render_template_string
 
+# Function to handle the addition of a new playlist to the database
 def handle_add_playlist(form_data):
-    playlist_name = form_data.get('playlist_name')
-    description = form_data.get('description')
+    # Extracting data submitted from the form
+    playlist_name = form_data.get('playlist_name')  # Get the playlist name from the form data
+    description = form_data.get('description')      # Get the description of the playlist from the form data
 
-    # Database connection and insertion
+    # Establishing a connection to the database
     db_conn = get_db_connection()
-    cursor = db_conn.cursor()
+    cursor = db_conn.cursor()  # Creating a cursor object to execute SQL queries
+
+    # Executing an SQL query to insert the new playlist into the Playlists table
     cursor.execute(
         "INSERT INTO Playlists (PlaylistName, Description) VALUES (%s, %s)",
         (playlist_name, description)
     )
+
+    # Committing the transaction to save changes to the database
     db_conn.commit()
+
+    # Closing the cursor and database connection
     cursor.close()
     db_conn.close()
 
-    # Redirect to the "All Playlists" page after adding the playlist
+    # Redirecting the user to the "All Playlists" page after the playlist is added
     return redirect(url_for('get_all_playlists'))
 
+# Function to render a form for adding a new playlist
 def render_add_playlist_form():
+    # HTML form for adding a new playlist to the database
     html_form = """
     <!DOCTYPE html>
     <html lang="en">
@@ -28,6 +45,7 @@ def render_add_playlist_form():
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Add New Playlist</title>
         <style>
+            /* Basic styling for the form */
             body {
                 font-family: Arial, sans-serif;
                 background-color: #f4f4f4;
@@ -75,6 +93,7 @@ def render_add_playlist_form():
     <body>
         <div class="container">
             <h1>Add New Playlist</h1>
+            <!-- The form where users input details about the playlist -->
             <form method="post">
                 <label for="playlist_name">Playlist Name:</label>
                 <input type="text" id="playlist_name" name="playlist_name" required>
@@ -84,9 +103,11 @@ def render_add_playlist_form():
 
                 <button type="submit">Add Playlist</button>
             </form>
+            <!-- Link to navigate back to the home page -->
             <a href="{{ url_for('home') }}">Back to Home</a>
         </div>
     </body>
     </html>
     """
+    # Rendering the HTML form as a string and returning it
     return render_template_string(html_form)
