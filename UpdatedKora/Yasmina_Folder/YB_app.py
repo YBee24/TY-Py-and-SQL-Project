@@ -51,3 +51,8 @@ def simulate_error():
 if __name__ == '__main__':
     app.run(debug=True)
 
+# YB_app.py
+
+# Import Flask and Flasgger modules
+from flask import Flask, request, jsonify
+from flasgger import Swagger, swag_from
